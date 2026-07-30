@@ -27,7 +27,7 @@ case "$operation" in
     ;;
   generate)
     if [[ $# -lt 6 || $# -gt 7 ]]; then
-      printf 'Usage: grok-video.sh generate <model> <prompt> <duration> <aspect_ratio> <resolution> [image_url]\n' >&2
+      printf 'Usage: grok-video.sh generate <model> <prompt> <duration> <aspect_ratio> <resolution> [image_source]\n' >&2
       exit 1
     fi
     model="$2"
@@ -35,14 +35,33 @@ case "$operation" in
     duration="$4"
     aspect_ratio="$5"
     resolution="$6"
-    image_url="${7:-}"
+    image_source="${7:-}"
+
+    work_dir="$(mktemp -d "${TMPDIR:-/tmp}/o1key-video.XXXXXX")"
+    trap 'rm -rf "$work_dir"' EXIT
+    image_value_file="$work_dir/image-value.txt"
+    body_file="$work_dir/request.json"
+
+    if [[ -n "$image_source" && -f "$image_source" ]]; then
+      case "${image_source##*.}" in
+        jpg|JPG|jpeg|JPEG) mime_type="image/jpeg" ;;
+        png|PNG) mime_type="image/png" ;;
+        webp|WEBP) mime_type="image/webp" ;;
+        gif|GIF) mime_type="image/gif" ;;
+        *) printf 'ERROR: Unsupported local image type. Use JPEG, PNG, WebP, or GIF.\n' >&2; exit 1 ;;
+      esac
+      printf 'data:%s;base64,' "$mime_type" > "$image_value_file"
+      base64 < "$image_source" | tr -d '\r\n' >> "$image_value_file"
+    else
+      printf '%s' "$image_source" > "$image_value_file"
+    fi
 
     if command -v osascript >/dev/null 2>&1; then
-      body="$(osascript -l JavaScript -e 'function run(a){const o={model:a[0],prompt:a[1],duration:Number(a[2]),aspect_ratio:a[3],resolution:a[4]};if(a[5])o.image={url:a[5]};return JSON.stringify(o)}' -- "$model" "$prompt" "$duration" "$aspect_ratio" "$resolution" "$image_url")"
+      osascript -l JavaScript -e 'ObjC.import("Foundation");function run(a){const image=$.NSString.stringWithContentsOfFileEncodingError(a[5],$.NSUTF8StringEncoding,null).js;const o={model:a[0],prompt:a[1],duration:Number(a[2]),aspect_ratio:a[3],resolution:a[4]};if(image)o.image={url:image};return JSON.stringify(o)}' -- "$model" "$prompt" "$duration" "$aspect_ratio" "$resolution" "$image_value_file" > "$body_file"
     elif command -v python3 >/dev/null 2>&1; then
-      body="$(python3 -c 'import json,sys;o={"model":sys.argv[1],"prompt":sys.argv[2],"duration":int(sys.argv[3]),"aspect_ratio":sys.argv[4],"resolution":sys.argv[5]};o.update({"image":{"url":sys.argv[6]}} if sys.argv[6] else {});print(json.dumps(o))' "$model" "$prompt" "$duration" "$aspect_ratio" "$resolution" "$image_url")"
+      python3 -c 'import json,sys;o={"model":sys.argv[1],"prompt":sys.argv[2],"duration":int(sys.argv[3]),"aspect_ratio":sys.argv[4],"resolution":sys.argv[5]};image=open(sys.argv[6],encoding="utf-8").read();o.update({"image":{"url":image}} if image else {});print(json.dumps(o))' "$model" "$prompt" "$duration" "$aspect_ratio" "$resolution" "$image_value_file" > "$body_file"
     elif command -v node >/dev/null 2>&1; then
-      body="$(node -e 'const a=process.argv.slice(1),o={model:a[0],prompt:a[1],duration:Number(a[2]),aspect_ratio:a[3],resolution:a[4]};if(a[5])o.image={url:a[5]};process.stdout.write(JSON.stringify(o))' "$model" "$prompt" "$duration" "$aspect_ratio" "$resolution" "$image_url")"
+      node -e 'const fs=require("fs"),a=process.argv.slice(1),image=fs.readFileSync(a[5],"utf8"),o={model:a[0],prompt:a[1],duration:Number(a[2]),aspect_ratio:a[3],resolution:a[4]};if(image)o.image={url:image};process.stdout.write(JSON.stringify(o))' "$model" "$prompt" "$duration" "$aspect_ratio" "$resolution" "$image_value_file" > "$body_file"
     else
       printf 'ERROR: macOS osascript, python3, or node is required to encode JSON safely.\n' >&2
       exit 1
@@ -52,7 +71,7 @@ case "$operation" in
       -X POST \
       -H "Authorization: Bearer $api_key" \
       -H 'Content-Type: application/json' \
-      --data "$body" \
+      --data-binary "@$body_file" \
       "$base_url/grok/v1/videos/generations"
     ;;
   *)

@@ -35,19 +35,19 @@ Read [references/grok-video.md](references/grok-video.md) for models, parameters
 Use one of these operations:
 
 ```text
-grok-video.sh generate <model> <prompt> <duration> <aspect_ratio> <resolution> [image_url]
+grok-video.sh generate <model> <prompt> <duration> <aspect_ratio> <resolution> [image_source]
 grok-video.sh status <public_task_id>
 ```
 
 ```text
-grok-video.ps1 generate -Model <model> -Prompt <prompt> -Duration <n> -AspectRatio <ratio> -Resolution <resolution> [-ImageUrl <url>]
+grok-video.ps1 generate -Model <model> -Prompt <prompt> -Duration <n> -AspectRatio <ratio> -Resolution <resolution> [-Image <source>]
 grok-video.ps1 status -TaskId <public_task_id>
 ```
 
 Workflow:
 
 1. Use `grok-imagine-video` for text-to-video.
-2. Use `grok-imagine-video-1.5` for image-to-video; require an HTTPS image URL.
+2. Use `grok-imagine-video-1.5` for image-to-video. Accept an HTTPS URL, a Base64 `data:image/...` URI, or a local image path. The platform script converts local files to Base64 data URIs automatically.
 3. Submit the generation and capture the returned public `request_id`.
 4. Poll `status` every 5 seconds until `done`, `failed`, or `expired`. Stop after 10 minutes unless the user asks to continue.
 5. On success, return the original `video.url`, duration, model, and task ID.

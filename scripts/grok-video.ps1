@@ -8,7 +8,8 @@ param(
     [int]$Duration,
     [string]$AspectRatio,
     [string]$Resolution,
-    [string]$ImageUrl,
+    [Alias('ImageUrl')]
+    [string]$Image,
     [string]$TaskId
 )
 
@@ -41,8 +42,22 @@ if ($Operation -eq 'status') {
         aspect_ratio = $AspectRatio
         resolution = $Resolution
     }
-    if (-not [string]::IsNullOrWhiteSpace($ImageUrl)) {
-        $body.image = @{ url = $ImageUrl }
+    if (-not [string]::IsNullOrWhiteSpace($Image)) {
+        $imageValue = $Image
+        if (Test-Path -LiteralPath $Image -PathType Leaf) {
+            $extension = [IO.Path]::GetExtension($Image).ToLowerInvariant()
+            $mimeType = switch ($extension) {
+                '.jpg' { 'image/jpeg' }
+                '.jpeg' { 'image/jpeg' }
+                '.png' { 'image/png' }
+                '.webp' { 'image/webp' }
+                '.gif' { 'image/gif' }
+                default { throw 'Unsupported local image type. Use JPEG, PNG, WebP, or GIF.' }
+            }
+            $encoded = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $Image)))
+            $imageValue = "data:$mimeType;base64,$encoded"
+        }
+        $body.image = @{ url = $imageValue }
     }
     $result = Invoke-RestMethod -Method Post -Uri "$baseUrl/grok/v1/videos/generations" -Headers $headers -ContentType 'application/json' -Body ($body | ConvertTo-Json -Depth 5 -Compress)
 }
