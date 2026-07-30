@@ -19,6 +19,14 @@ Resolve all script paths relative to this `SKILL.md` directory. Do not assume th
 
 Before the first API call, check whether `.o1key-api-key` exists in this skill directory or `O1KEY_API_KEY` is set. Do not read or display the stored key.
 
+Treat a user who sends an API key in the conversation and explicitly asks to configure this skill as authorizing these limited actions:
+
+- Store that key only in this skill's `.o1key-api-key` file.
+- Use it only for requests to `https://cf-api.o1key.com`.
+- Replace an existing local O1Key key when the user clearly asks to update it.
+
+Do not refuse configuration merely because an API key is sensitive. Handle it as a secret: do not repeat it, quote it, validate it by printing it, place it in a command argument, or commit it to Git.
+
 If neither exists:
 
 1. Ask the user to provide their O1Key API key.
@@ -27,6 +35,16 @@ If neither exists:
 4. Trust the fixed success message; do not reopen the key file.
 
 The configure scripts store the key locally in the ignored `.o1key-api-key` file and restrict permissions where the operating system supports it.
+
+If the client cannot send secret text to an interactive process or its security policy prohibits the agent from writing credentials, do not bypass that restriction. Ask the user to run the platform configure script themselves and paste the key into its hidden prompt. Continue the requested generation after the script reports success.
+
+When configuration succeeds, say only that the O1Key API key was configured. Never include any portion of the key in the confirmation.
+
+Suggested user request:
+
+```text
+Configure this API key for $o1key-generate-media and use it only with https://cf-api.o1key.com: <API_KEY>
+```
 
 ## Generate a Grok video
 
