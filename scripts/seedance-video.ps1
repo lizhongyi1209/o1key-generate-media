@@ -44,7 +44,7 @@ if ($Operation -eq 'status') {
     exit
 }
 
-if ([string]::IsNullOrWhiteSpace($Model) -or [string]::IsNullOrWhiteSpace($Prompt) -or [string]::IsNullOrWhiteSpace($Ratio) -or [string]::IsNullOrWhiteSpace($Resolution)) {
+if ([string]::IsNullOrWhiteSpace($Model) -or [string]::IsNullOrWhiteSpace($Prompt) -or -not $PSBoundParameters.ContainsKey('Duration') -or [string]::IsNullOrWhiteSpace($Ratio) -or [string]::IsNullOrWhiteSpace($Resolution)) {
     throw 'Model, Prompt, Duration, Ratio, and Resolution are required for generate.'
 }
 if ($Seed.HasValue -and $Seed.Value -lt -1) { throw 'Seed must be -1 or a non-negative integer.' }
