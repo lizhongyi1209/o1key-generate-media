@@ -15,6 +15,26 @@ Use `https://cf-api.o1key.com` as the fixed API base URL. Never send the API key
 
 Resolve all script paths relative to this `SKILL.md` directory. Do not assume the current working directory is the skill directory.
 
+## Report generation results
+
+After polling reaches a terminal state, always include a `本次消耗费用` line in the final user-facing summary.
+
+- Use the terminal status response's `cost` value when present. Treat it as the platform's settled charge; do not use an intermediate queued, submitted, or processing value.
+- Preserve the value exactly as returned and do not infer a currency symbol that the response does not provide.
+- If a successful terminal response does not contain `cost`, write `本次消耗费用：接口未返回` instead of estimating from model pricing.
+- If generation fails, report the terminal `cost` when present. Only describe the task as free or refunded when the terminal response explicitly returns zero.
+- Never expose upstream/provider billing details, internal quota values, or private task IDs while explaining the charge.
+
+Use this compact completion format:
+
+```text
+生成状态：成功
+模型：<model>
+任务 ID：<public_task_id>
+本次消耗费用：<terminal cost, or 接口未返回>
+视频地址：<video_url>
+```
+
 ## Configure authentication
 
 Before the first API call, check whether `.o1key-api-key` exists in this skill directory or `O1KEY_API_KEY` is set. Do not read or display the stored key.
@@ -68,7 +88,7 @@ Workflow:
 2. Use `grok-imagine-video-1.5` for image-to-video. Accept an HTTPS URL, a Base64 `data:image/...` URI, or a local image path. The platform script converts local files to Base64 data URIs automatically.
 3. Submit the generation and capture the returned public `request_id`.
 4. Poll `status` every 5 seconds until `done`, `failed`, or `expired`. Stop after 10 minutes unless the user asks to continue.
-5. On success, return the original `video.url`, duration, model, and task ID.
+5. On success, return the original `video.url`, duration, model, task ID, and the required fee line described above.
 6. On failure, report the API error without exposing authentication or internal configuration.
 
 Never invent a task ID or video URL. Never call the upstream xAI API directly.
@@ -95,7 +115,7 @@ Workflow:
 2. Accept text-only generation or public HTTPS image, video, and audio references. Seedance media inputs must be public URLs; do not send local paths or Base64 data URIs.
 3. Submit the generation and capture the returned public `task_id`.
 4. Poll `status` every 5 seconds until `success` or `failed`. Stop after 15 minutes unless the user asks to continue.
-5. On success, return `video_url`, model, and task ID.
+5. On success, return `video_url`, model, task ID, and the required fee line described above.
 6. On failure, report the API error without exposing authentication or internal configuration.
 
 Never invent media URLs or task IDs. Never call a Seedance upstream provider directly.
@@ -122,6 +142,6 @@ Workflow:
 4. Require every media URL to be publicly reachable over HTTPS. Do not send local paths or Base64 data URIs.
 5. Submit and capture the returned public `task_id`.
 6. Poll every 5 seconds until `SUCCESS` or `FAILURE`; stop after 15 minutes unless the user asks to continue.
-7. On success, return `video_url`, duration, model, cost, and task ID. Remove the temporary request file.
+7. On success, return `video_url`, duration, model, terminal `cost`, and task ID using the completion format above. Remove the temporary request file.
 
 Do not set `options.callback_url` unless the user explicitly requests a callback and approves its destination. Never call Kling directly.
