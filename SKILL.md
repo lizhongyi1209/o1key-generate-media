@@ -1,6 +1,6 @@
 ---
 name: o1key-generate-media
-description: Generate media through the O1Key API, currently including Grok text-to-video and image-to-video generation with asynchronous task polling. Use when a user asks Codex or ChatGPT to create, animate, or generate a video with Grok, or asks to configure an O1Key API key for media generation. Designed for Windows and macOS clients and intended to expand to Nano Banana Pro and other image/video models.
+description: Generate media through the O1Key API, including Grok and Seedance 2.0 text-to-video, image-to-video, and multimodal reference video generation with asynchronous task polling. Use when a user asks Codex or ChatGPT to create, animate, or generate a video with Grok or Seedance, use reference images/videos/audio, or configure an O1Key API key for media generation. Designed for Windows and macOS clients and intended to expand to Nano Banana Pro and other image/video models.
 ---
 
 # O1Key Media Generator
@@ -9,8 +9,8 @@ Use `https://cf-api.o1key.com` as the fixed API base URL. Never send the API key
 
 ## Select the platform script
 
-- On macOS, run `scripts/configure.sh` and `scripts/grok-video.sh` with `bash`.
-- On Windows, run `scripts/configure.ps1` and `scripts/grok-video.ps1` with PowerShell.
+- On macOS, run `scripts/configure.sh`, `scripts/grok-video.sh`, and `scripts/seedance-video.sh` with `bash`.
+- On Windows, run the corresponding `.ps1` scripts with PowerShell.
 - On other POSIX systems, use the macOS shell scripts when `python3` or `node` is available.
 
 Resolve all script paths relative to this `SKILL.md` directory. Do not assume the current working directory is the skill directory.
@@ -72,3 +72,30 @@ Workflow:
 6. On failure, report the API error without exposing authentication or internal configuration.
 
 Never invent a task ID or video URL. Never call the upstream xAI API directly.
+
+## Generate a Seedance 2.0 video
+
+Read [references/seedance-video.md](references/seedance-video.md) for models, parameters, media limits, and examples.
+
+Use one of these operations:
+
+```text
+seedance-video.sh generate <model> <prompt> <duration> <ratio> <resolution> [options]
+seedance-video.sh status <public_task_id>
+```
+
+```text
+seedance-video.ps1 generate -Model <model> -Prompt <prompt> -Duration <n> -Ratio <ratio> -Resolution <resolution> [options]
+seedance-video.ps1 status -TaskId <public_task_id>
+```
+
+Workflow:
+
+1. Select `seedance-2.0`, `seedance-2.0-fast`, or `seedance-2.0-mini` according to the user's quality and speed preference.
+2. Accept text-only generation or public HTTPS image, video, and audio references. Seedance media inputs must be public URLs; do not send local paths or Base64 data URIs.
+3. Submit the generation and capture the returned public `task_id`.
+4. Poll `status` every 5 seconds until `success` or `failed`. Stop after 15 minutes unless the user asks to continue.
+5. On success, return `video_url`, model, and task ID.
+6. On failure, report the API error without exposing authentication or internal configuration.
+
+Never invent media URLs or task IDs. Never call a Seedance upstream provider directly.

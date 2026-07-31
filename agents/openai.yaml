@@ -1,4 +1,4 @@
 interface:
   display_name: "O1Key Media Generator"
   short_description: "Generate images and videos through O1Key"
-  default_prompt: "Use $o1key-generate-media to generate a Grok video from my prompt."
+  default_prompt: "Use $o1key-generate-media to generate a Grok or Seedance video from my prompt and reference media."
