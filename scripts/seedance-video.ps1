@@ -25,7 +25,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$baseUrl = 'https://cf-api.o1key.com'
+$primaryBaseUrl = 'https://api.o1key.cn'
+$fallbackBaseUrl = 'https://cf-api.o1key.com'
+$route = if ([string]::IsNullOrWhiteSpace($env:O1KEY_API_ROUTE)) { 'primary' } else { $env:O1KEY_API_ROUTE.Trim().ToLowerInvariant() }
+if ($route -notin @('primary', 'fallback')) { throw 'O1KEY_API_ROUTE must be primary or fallback.' }
+$baseUrl = if ($route -eq 'fallback') { $fallbackBaseUrl } else { $primaryBaseUrl }
 $skillDir = Split-Path -Parent $PSScriptRoot
 $keyFile = Join-Path $skillDir '.o1key-api-key'
 $apiKey = $env:O1KEY_API_KEY
