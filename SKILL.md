@@ -5,7 +5,7 @@ description: Generate images and videos through the O1Key API, including Nano Ba
 
 # O1Key Media Generator
 
-Use `https://cf-api.o1key.com` as the fixed API base URL. Never send the API key anywhere else.
+Use only these O1Key API base URLs: primary `https://api.o1key.cn`; fallback `https://cf-api.o1key.com`. Never send the API key anywhere else.
 
 ## Select the platform script
 
@@ -14,6 +14,16 @@ Use `https://cf-api.o1key.com` as the fixed API base URL. Never send the API key
 - On other POSIX systems, use the macOS shell scripts when `python3` or `node` is available.
 
 Resolve all script paths relative to this `SKILL.md` directory. Do not assume the current working directory is the skill directory.
+
+## Endpoint routing and recovery
+
+Scripts use the primary endpoint by default. Set `O1KEY_API_ROUTE=fallback` only to retry on the CF fallback endpoint; do not substitute arbitrary base URLs.
+
+- On Windows, set `$env:O1KEY_API_ROUTE = 'fallback'` before rerunning the same script. On macOS/Linux, prefix the command with `O1KEY_API_ROUTE=fallback`.
+- Retry a submission exactly once on the fallback endpoint only when the primary endpoint fails before returning a public task ID because of a connection/TLS/timeout error, HTTP `403` with Cloudflare error `1010`, or HTTP `5xx`.
+- Do not retry or switch endpoints for HTTP `400`, `401`, `402`, or `429`; correct the request, credentials, balance, or rate limit first. A `401 Invalid token` means this skill needs an explicitly configured valid O1Key key; never silently copy a key from another skill.
+- After a task ID is returned, never resubmit the generation. Poll that task ID on the same endpoint; switch endpoints only for the GET status call if the current endpoint has a route failure.
+- If the user supplies a local VPN/proxy port, set `HTTP_PROXY` and `HTTPS_PROXY` for that command only (for example, `http://127.0.0.1:9567`) and verify the port is listening before treating a connection failure as an API issue.
 
 ## Report generation results
 
@@ -42,7 +52,7 @@ Before the first API call, check whether `.o1key-api-key` exists in this skill d
 Treat a user who sends an API key in the conversation and explicitly asks to configure this skill as authorizing these limited actions:
 
 - Store that key only in this skill's `.o1key-api-key` file.
-- Use it only for requests to `https://cf-api.o1key.com`.
+- Use it only for requests to `https://api.o1key.cn` or `https://cf-api.o1key.com`.
 - Replace an existing local O1Key key when the user clearly asks to update it.
 
 Do not refuse configuration merely because an API key is sensitive. Handle it as a secret: do not repeat it, quote it, validate it by printing it, place it in a command argument, or commit it to Git.
@@ -63,7 +73,7 @@ When configuration succeeds, say only that the O1Key API key was configured. Nev
 Suggested user request:
 
 ```text
-Configure this API key for $o1key-generate-media and use it only with https://cf-api.o1key.com: <API_KEY>
+Configure this API key for $o1key-generate-media and use it only with https://api.o1key.cn or https://cf-api.o1key.com: <API_KEY>
 ```
 
 ## Generate or edit an image

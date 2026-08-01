@@ -2,8 +2,10 @@
 
 ## Endpoints
 
-- Submit: `POST https://cf-api.o1key.com/grok/v1/videos/generations`
-- Poll: `GET https://cf-api.o1key.com/grok/v1/videos/{request_id}`
+- Submit: `POST https://api.o1key.cn/grok/v1/videos/generations`
+- Poll: `GET https://api.o1key.cn/grok/v1/videos/{request_id}`
+
+Use `O1KEY_API_ROUTE=fallback` only to retry a route failure before a request ID is returned; it uses `https://cf-api.o1key.com`.
 - Authentication: `Authorization: Bearer <O1Key API key>`
 
 ## Models
