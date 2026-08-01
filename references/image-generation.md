@@ -11,6 +11,8 @@ GET  /async/v1/tasks/{public_task_id}
 
 Both requests use `Authorization: Bearer <O1Key API key>`. Submit JSON with `Content-Type: application/json`.
 
+Use `https://api.o1key.cn` by default. If the primary endpoint fails before returning a task ID with a connection error, timeout, HTTP `403` / Cloudflare `1010`, or HTTP `5xx`, rerun once with `O1KEY_API_ROUTE=fallback` to use `https://cf-api.o1key.com`. Do not switch endpoints for `400`, `401`, `402`, or `429`.
+
 ## Supported models
 
 ### Nano Banana
