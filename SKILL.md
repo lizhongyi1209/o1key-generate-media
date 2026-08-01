@@ -1,6 +1,6 @@
 ---
 name: o1key-generate-media
-description: Generate media through the O1Key API, including Grok, Seedance 2.0, Kling 3.0 Omni, and Kling 3.0 Motion Control video generation with asynchronous task polling. Use when a user asks Codex or ChatGPT to create or animate a video, use reference images/videos/audio, control a character from a motion video, use Kling first/last frames or multimodal references, or configure an O1Key API key for media generation. Designed for Windows and macOS clients and intended to expand to Nano Banana Pro and other image/video models.
+description: Generate images and videos through the O1Key API, including Nano Banana, GPT Image, Grok, Seedance 2.0, Kling 3.0 Omni, and Kling 3.0 Motion Control with asynchronous task polling. Use when a user asks Codex or ChatGPT to create or edit an image, create or animate a video, use reference images/videos/audio, control a character from a motion video, or configure an O1Key API key for media generation. Designed for Windows and macOS clients.
 ---
 
 # O1Key Media Generator
@@ -9,7 +9,7 @@ Use `https://cf-api.o1key.com` as the fixed API base URL. Never send the API key
 
 ## Select the platform script
 
-- On macOS, run `scripts/configure.sh`, `scripts/grok-video.sh`, `scripts/seedance-video.sh`, and `scripts/kling-video.sh` with `bash`.
+- On macOS, run `scripts/configure.sh`, `scripts/image-generation.sh`, `scripts/grok-video.sh`, `scripts/seedance-video.sh`, and `scripts/kling-video.sh` with `bash`.
 - On Windows, run the corresponding `.ps1` scripts with PowerShell.
 - On other POSIX systems, use the macOS shell scripts when `python3` or `node` is available.
 
@@ -65,6 +65,32 @@ Suggested user request:
 ```text
 Configure this API key for $o1key-generate-media and use it only with https://cf-api.o1key.com: <API_KEY>
 ```
+
+## Generate or edit an image
+
+Read [references/image-generation.md](references/image-generation.md) for the supported Nano Banana and GPT Image models, provider-specific parameters, limits, and examples.
+
+```text
+image-generation.sh generate <request_json_file>
+image-generation.sh status <public_task_id>
+```
+
+```text
+image-generation.ps1 generate -RequestFile <request_json_file>
+image-generation.ps1 status -TaskId <public_task_id>
+```
+
+Workflow:
+
+1. Use a Nano Banana model for Gemini-native generation and editing. Use `size`, `aspect_ratio`, and Gemini-only controls; never send GPT Image-only fields.
+2. Use `gpt-image-2-c` for GPT Image generation, multi-image output, reference editing, or mask editing. Use `n`, pixel `size`, `quality`, and `output_format`; never send Gemini-only fields.
+3. Put every reference image in `images`, including a single image. Accept an HTTP(S) URL, Base64 data URI, or raw Base64 string. Never use the removed `image` field.
+4. Build a temporary UTF-8 JSON request file, submit it, and capture the public `task_id`.
+5. Poll `status` every 5 seconds until `SUCCESS` or `FAILURE`; stop after 10 minutes unless the user asks to continue.
+6. On success, return every `data.images[].url` or decoded `local_path`, model, public task ID, and the required fee line. Remove the temporary request file.
+7. On failure, report the returned error and terminal fee fallback without exposing authentication or internal configuration.
+
+Never invent image URLs or task IDs. Never call Gemini or OpenAI directly.
 
 ## Generate a Grok video
 
