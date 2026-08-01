@@ -36,7 +36,7 @@ Use `O1KEY_API_ROUTE=fallback` only to retry a route failure before a task ID is
 
 Image roles include `first_frame`, `last_frame`, and `reference_image`. Use `-` in the Bash script to omit a role.
 
-All reference media must be publicly reachable over HTTPS. Do not pass local paths, `file:` URLs, or Base64 data URIs. Upload local media to a user-approved public location first.
+All reference media must be publicly reachable over HTTPS. Do not pass local paths, `file:` URLs, or Base64 data URIs. For local media, use the bundled `upload-media` script to upload through `POST /v1/storage/oss/presign`, then pass its returned `public_url`.
 
 Recommended multimodal limits:
 

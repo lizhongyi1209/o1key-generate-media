@@ -9,7 +9,7 @@ Use only these O1Key API base URLs: primary `https://api.o1key.cn`; fallback `ht
 
 ## Select the platform script
 
-- On macOS, run `scripts/configure.sh`, `scripts/image-generation.sh`, `scripts/grok-video.sh`, `scripts/seedance-video.sh`, and `scripts/kling-video.sh` with `bash`.
+- On macOS, run `scripts/configure.sh`, `scripts/upload-media.sh`, `scripts/image-generation.sh`, `scripts/grok-video.sh`, `scripts/seedance-video.sh`, and `scripts/kling-video.sh` with `bash`.
 - On Windows, run the corresponding `.ps1` scripts with PowerShell.
 - On other POSIX systems, use the macOS shell scripts when `python3` or `node` is available.
 
@@ -69,6 +69,17 @@ The configure scripts store the key locally in the ignored `.o1key-api-key` file
 If the client cannot send secret text to an interactive process or its security policy prohibits the agent from writing credentials, do not bypass that restriction. Ask the user to run the platform configure script themselves and paste the key into its hidden prompt. Continue the requested generation after the script reports success.
 
 When configuration succeeds, say only that the O1Key API key was configured. Never include any portion of the key in the confirmation.
+
+## Upload local reference media
+
+Read [references/media-upload.md](references/media-upload.md) whenever a video request contains a local image, video, or audio file and the target API requires a public HTTPS URL.
+
+```text
+upload-media.sh <local_media_file>
+upload-media.ps1 -FilePath <local_media_file>
+```
+
+Upload the local file through `POST /v1/storage/oss/presign`, then use the returned `public_url` in the video request. Always use the returned upload method and every returned signed header. Do not expose or retain the presigned `upload_url`, send the O1Key API key to OSS, or construct an OSS URL manually. Stop before video submission if the upload fails.
 
 Suggested user request:
 
@@ -150,7 +161,7 @@ seedance-video.ps1 status -TaskId <public_task_id>
 Workflow:
 
 1. Select `seedance-2.0`, `seedance-2.0-fast`, or `seedance-2.0-mini` according to the user's quality and speed preference.
-2. Accept text-only generation or public HTTPS image, video, and audio references. Seedance media inputs must be public URLs; do not send local paths or Base64 data URIs.
+2. Accept text-only generation or public HTTPS image, video, and audio references. When the user supplies a local reference, run the media upload script first and replace it with the returned OSS `public_url`. Do not send local paths or Base64 data URIs to Seedance.
 3. Submit the generation and capture the returned public `task_id`.
 4. Poll `status` every 5 seconds until `success` or `failed`. Stop after 15 minutes unless the user asks to continue.
 5. On success, return `video_url`, model, task ID, and the required fee line described above.
@@ -177,7 +188,7 @@ Workflow:
 1. Use `omni` for text, first/last frame, reference image, feature video, base video, or Element generation.
 2. Use `motion` when exactly one character image/Element must follow exactly one reference video's motion.
 3. Build a temporary UTF-8 JSON request file with the official `contents`, `settings`, and optional `options` structure. Validate it against the selected operation's constraints.
-4. Require every media URL to be publicly reachable over HTTPS. Do not send local paths or Base64 data URIs.
+4. Require every media URL to be publicly reachable over HTTPS. When the user supplies a local reference, run the media upload script first and replace it with the returned OSS `public_url`. Do not send local paths or Base64 data URIs to Kling.
 5. Submit and capture the returned public `task_id`.
 6. Poll every 5 seconds until `SUCCESS` or `FAILURE`; stop after 15 minutes unless the user asks to continue.
 7. On success, return `video_url`, duration, model, terminal `cost`, and task ID using the completion format above. Remove the temporary request file.
