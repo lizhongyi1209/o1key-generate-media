@@ -109,23 +109,25 @@ Read [references/grok-video.md](references/grok-video.md) for models, parameters
 Use one of these operations:
 
 ```text
-grok-video.sh generate <model> <prompt> <duration> <aspect_ratio> <resolution> [image_source]
+grok-video.sh <generate|edit|extend> <request_json_file>
 grok-video.sh status <public_task_id>
 ```
 
 ```text
-grok-video.ps1 generate -Model <model> -Prompt <prompt> -Duration <n> -AspectRatio <ratio> -Resolution <resolution> [-Image <source>]
+grok-video.ps1 <generate|edit|extend> -RequestFile <request_json_file>
 grok-video.ps1 status -TaskId <public_task_id>
 ```
 
 Workflow:
 
-1. Use `grok-imagine-video` for text-to-video.
-2. Use `grok-imagine-video-1.5` for image-to-video. Accept an HTTPS URL, a Base64 `data:image/...` URI, or a local image path. The platform script converts local files to Base64 data URIs automatically.
-3. Submit the generation and capture the returned public `request_id`.
-4. Poll `status` every 5 seconds until `done`, `failed`, or `expired`. Stop after 10 minutes unless the user asks to continue.
-5. On success, return the original `video.url`, duration, model, task ID, and the required fee line described above.
-6. On failure, report the API error without exposing authentication or internal configuration.
+1. Use `generate` with `grok-imagine-video` for text-to-video, image-to-video, or reference image/audio generation. Use a 1.5 model only for image-to-video.
+2. Use `edit` to modify an MP4 and `extend` to continue an MP4. Both require `grok-imagine-video`, a prompt, and one `video` locator.
+3. Build a temporary UTF-8 JSON request file using the exact mode-specific schema and limits in the reference. Use URL, Base64 data URI, or public `file_id` media locators. The legacy basic generation syntax remains supported for compatibility.
+4. Do not configure `output.upload_url`, `storage_options`, or a callback-like external destination unless the user explicitly requests it and approves the destination.
+5. Submit once and capture the returned public `request_id`. Never switch routes and resubmit after receiving an ID.
+6. Poll `status` every 5 seconds until `done`, `failed`, or `expired`. Stop after 10 minutes unless the user asks to continue.
+7. On success, return the terminal response's `video.url` unchanged, duration, model, public task ID, and required fee line. The URL may be O1Key R2-accelerated. Remove the temporary request file.
+8. On failure, report the API error without exposing authentication, upstream cost, moderation metadata, or internal configuration.
 
 Never invent a task ID or video URL. Never call the upstream xAI API directly.
 
