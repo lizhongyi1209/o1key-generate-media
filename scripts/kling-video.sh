@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base_url="https://cf-api.o1key.com"
+primary_base_url="https://api.o1key.cn"
+fallback_base_url="https://cf-api.o1key.com"
+route="${O1KEY_API_ROUTE:-primary}"
+case "$route" in
+  primary) base_url="$primary_base_url" ;;
+  fallback) base_url="$fallback_base_url" ;;
+  *) printf 'ERROR: O1KEY_API_ROUTE must be primary or fallback.\n' >&2; exit 1 ;;
+esac
 skill_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 key_file="$skill_dir/.o1key-api-key"
 api_key="${O1KEY_API_KEY:-}"
