@@ -121,4 +121,4 @@ Successful polling response:
 
 When the API returns `b64_json`, the platform status script decodes it into `O1KEY_OUTPUT_DIR` or the current directory's `output` folder and replaces the large Base64 value with `local_path`. Return that local file to the user. When the API returns `url`, preserve and return the URL.
 
-Treat `SUCCESS` and `FAILURE` as terminal. The task response currently has no `cost`; follow the main skill's required fee-line fallback instead of estimating.
+Treat `SUCCESS` and `FAILURE` as terminal. Report the measured elapsed time from immediately before submission until the image URL is received or the decoded local image file is available.
