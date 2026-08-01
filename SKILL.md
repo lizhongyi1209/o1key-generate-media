@@ -27,21 +27,25 @@ Scripts use the primary endpoint by default. Set `O1KEY_API_ROUTE=fallback` only
 
 ## Report generation results
 
-After polling reaches a terminal state, always include a `本次消耗费用` line in the final user-facing summary.
+Temporarily omit all consumption-cost collection and reporting. Do not inspect, infer, estimate, or report `cost` values.
 
-- Use the terminal status response's `cost` value when present. Treat it as the platform's settled charge; do not use an intermediate queued, submitted, or processing value.
-- Preserve the value exactly as returned and do not infer a currency symbol that the response does not provide.
-- If a successful terminal response does not contain `cost`, write `本次消耗费用：接口未返回` instead of estimating from model pricing.
-- If generation fails, report the terminal `cost` when present. Only describe the task as free or refunded when the terminal response explicitly returns zero.
-- Never expose upstream/provider billing details, internal quota values, or private task IDs while explaining the charge.
+Always measure and report the real image-production elapsed time for image generation tasks:
+
+1. Capture a start timestamp immediately before invoking the image `generate` operation, after the request JSON and reference-image payload are ready.
+2. Continue through submission, queueing, provider generation, polling, and final image retrieval/decoding.
+3. Capture the end timestamp only after a terminal `SUCCESS` response has been received and the image is available as a returned URL or a verified local file.
+4. Report `end - start` as `图片生产耗时`, preferably with milliseconds. Do not include request construction, local reference-image preparation, visual inspection, or cleanup time.
+
+For video tasks, report the analogous elapsed time from immediately before submission until the terminal video result is available.
 
 Use this compact completion format:
 
 ```text
-生成状态：成功
+生成状态：<status>
 模型：<model>
 任务 ID：<public_task_id>
-本次消耗费用：<terminal cost, or 接口未返回>
+图片生产耗时：<elapsed time>
+图片地址：<image URL or local_path>
 视频地址：<video_url>
 ```
 
@@ -97,8 +101,8 @@ Workflow:
 3. Put every reference image in `images`, including a single image. Accept an HTTP(S) URL, Base64 data URI, or raw Base64 string. Never use the removed `image` field.
 4. Build a temporary UTF-8 JSON request file, submit it, and capture the public `task_id`.
 5. Poll `status` every 5 seconds until `SUCCESS` or `FAILURE`; stop after 10 minutes unless the user asks to continue.
-6. On success, return every `data.images[].url` or decoded `local_path`, model, public task ID, and the required fee line. Remove the temporary request file.
-7. On failure, report the returned error and terminal fee fallback without exposing authentication or internal configuration.
+6. On success, return every `data.images[].url` or decoded `local_path`, model, public task ID, and the measured elapsed time. Remove the temporary request file.
+7. On failure, report the returned error and measured elapsed time when available without exposing authentication or internal configuration.
 
 Never invent image URLs or task IDs. Never call Gemini or OpenAI directly.
 
@@ -124,7 +128,7 @@ Workflow:
 2. Use `grok-imagine-video-1.5` for image-to-video. Accept an HTTPS URL, a Base64 `data:image/...` URI, or a local image path. The platform script converts local files to Base64 data URIs automatically.
 3. Submit the generation and capture the returned public `request_id`.
 4. Poll `status` every 5 seconds until `done`, `failed`, or `expired`. Stop after 10 minutes unless the user asks to continue.
-5. On success, return the original `video.url`, duration, model, task ID, and the required fee line described above.
+5. On success, return the original `video.url`, duration, model, task ID, and the measured elapsed time described above.
 6. On failure, report the API error without exposing authentication or internal configuration.
 
 Never invent a task ID or video URL. Never call the upstream xAI API directly.
@@ -151,7 +155,7 @@ Workflow:
 2. Accept text-only generation or public HTTPS image, video, and audio references. Seedance media inputs must be public URLs; do not send local paths or Base64 data URIs.
 3. Submit the generation and capture the returned public `task_id`.
 4. Poll `status` every 5 seconds until `success` or `failed`. Stop after 15 minutes unless the user asks to continue.
-5. On success, return `video_url`, model, task ID, and the required fee line described above.
+5. On success, return `video_url`, model, task ID, and the measured elapsed time described above.
 6. On failure, report the API error without exposing authentication or internal configuration.
 
 Never invent media URLs or task IDs. Never call a Seedance upstream provider directly.
@@ -178,6 +182,6 @@ Workflow:
 4. Require every media URL to be publicly reachable over HTTPS. Do not send local paths or Base64 data URIs.
 5. Submit and capture the returned public `task_id`.
 6. Poll every 5 seconds until `SUCCESS` or `FAILURE`; stop after 15 minutes unless the user asks to continue.
-7. On success, return `video_url`, duration, model, terminal `cost`, and task ID using the completion format above. Remove the temporary request file.
+7. On success, return `video_url`, duration, model, task ID and the measured elapsed time using the completion format above. Remove the temporary request file.
 
 Do not set `options.callback_url` unless the user explicitly requests a callback and approves its destination. Never call Kling directly.
