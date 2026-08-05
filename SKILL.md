@@ -144,30 +144,34 @@ Never invent a task ID or video URL. Never call the upstream xAI API directly.
 
 ## Generate a Seedance 2.0 video
 
-Read [references/seedance-video.md](references/seedance-video.md) for models, parameters, media limits, and examples.
+Read [references/seedance-video.md](references/seedance-video.md) for HC models, asset registration, parameters, media limits, and multimodal examples.
 
 Use one of these operations:
 
 ```text
-seedance-video.sh generate <model> <prompt> <duration> <ratio> <resolution> [options]
+seedance-video.sh asset <create|status> ...
+seedance-video.sh generate <hc_model> <prompt> <duration> <ratio> <resolution> [options]
 seedance-video.sh status <public_task_id>
 ```
 
 ```text
-seedance-video.ps1 generate -Model <model> -Prompt <prompt> -Duration <n> -Ratio <ratio> -Resolution <resolution> [options]
+seedance-video.ps1 asset -AssetOperation <create|status> [options]
+seedance-video.ps1 generate -Model <hc_model> -Prompt <prompt> -Duration <n> -Ratio <ratio> -Resolution <resolution> [options]
 seedance-video.ps1 status -TaskId <public_task_id>
 ```
 
 Workflow:
 
-1. Select `seedance-2.0`, `seedance-2.0-fast`, or `seedance-2.0-mini` according to the user's quality and speed preference.
-2. Accept text-only generation or public HTTPS image, video, and audio references. When the user supplies a local reference, run the media upload script first and replace it with the returned OSS `public_url`. Do not send local paths or Base64 data URIs to Seedance.
-3. Submit the generation and capture the returned public `task_id`.
-4. Poll `status` every 5 seconds until `success` or `failed`. Stop after 15 minutes unless the user asks to continue.
-5. On success, return `video_url`, model, task ID, and the required fee line described above.
-6. On failure, report the API error without exposing authentication or internal configuration.
+1. Select `dreamina-seedance-2-0-hc`, `dreamina-seedance-2-0-fast-hc`, or `dreamina-seedance-2-0-mini-hc` according to the user's quality, speed, and cost preference. Use only `480p` or `720p` with Fast HC and Mini HC.
+2. For text-only generation, skip asset registration. For each image, video, or audio reference, obtain a public HTTPS source URL. When the user supplies a local file, run `upload-media` first and use its returned OSS `public_url`.
+3. Register every reference through `POST /v1/sd/assets` with the exact `URL`, `Name`, and `AssetType` fields. Poll `GET /v1/sd/assets/{asset_id}` every 2–5 seconds until `data.Status` is `Active`, then use `asset://<data.Id>`. Do not submit a `Processing` or `Failed` asset.
+4. Build the video request as `content[]`: one `text` item plus typed `image_url`, `video_url`, and `audio_url` items with roles such as `reference_image`, `reference_video`, or `reference_audio`.
+5. Submit once to `POST /v1/video/generations` and capture the returned public `task_id`. Never call the internal `/v1/video/generate` endpoint.
+6. Poll `status` every 5 seconds until `completed` or `failed`. Stop after 15 minutes unless the user asks to continue.
+7. On success, return `metadata.url` or `metadata.outputs[0]`, model, task ID, and the required fee line described above.
+8. On failure, report the API error without exposing authentication or internal configuration.
 
-Never invent media URLs or task IDs. Never call a Seedance upstream provider directly.
+Never send local paths or Base64 data URIs to Seedance, invent media URLs or task IDs, use legacy non-HC model names for identity references, or call a Seedance upstream provider directly.
 
 ## Generate a Kling 3.0 video
 
